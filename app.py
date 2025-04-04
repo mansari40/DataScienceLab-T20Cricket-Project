@@ -3,11 +3,12 @@ import pandas as pd
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Wedge
+from matplotlib.patches import Circle, Wedge, Rectangle
 from matplotlib.lines import Line2D
+import seaborn as sns  # Added for your visualizations
 
-@st.cache_data#data load once
-def ld(path="IPL_2018_2024.xlsx"):
+@st.cache_data  # Data load once
+def ld(path="IPL_2018_2024_copy.xlsx"):
     df = pd.read_excel(path)
     cols = [
         "bat", "batruns", "out", "dismissal",
@@ -40,8 +41,7 @@ def shift_coords(df):
     df["plotY"] = df["wagonY"] - centerY
     return df
 
-
-#all/zoneshot
+# All/zone shot difficulty
 def sd(df):
     zone_ct = df.groupby(["line", "length", "wagonZone"]).size().reset_index(name="ShotsInZone")
     total_ct = df.groupby(["line", "length"]).size().reset_index(name="AllShots")
@@ -336,14 +336,126 @@ def main():
         st.markdown(r"""
         **Explanations**:
         - **Shot Difficulty**: Shots in all zones / shots in each specific zone.
-        - **Genral Wagon Wheel**: All boundaries.
+        - **General Wagon Wheel**: All boundaries.
         - **Intelligent Wagon Wheel**: Boundary w.r.t line length combination = (runs × sd).
         - **Wagon Zone Wheel**: Zone based specifications.
         - **Strike Rate**: Total runs / Balls x 100.
-        - **Impact/100balls**: Imapct of player on team.
+        - **Impact/100balls**: Impact of player on team.
         """)
     else:
         st.write("No bowling style data found.")
+
+    # Your Visualization 1: Percentage of Outs by Bowl Length
+    st.subheader(f"Percentage of Outs by Bowl Length for {selected_batter}")
+    length_summary = (
+        sub
+        .assign(out_flag=sub['out'].astype(bool))
+        .groupby('length')
+        .agg(
+            total_balls=('out_flag', 'size'),
+            total_outs=('out_flag', 'sum')
+        )
+        .reset_index()
+    )
+    total_outs = length_summary['total_outs'].sum()
+    if total_outs > 0:
+        length_summary['out_percentage'] = 100 * length_summary['total_outs'] / total_outs
+    else:
+        length_summary['out_percentage'] = 0
+    length_summary = length_summary.sort_values('out_percentage', ascending=False)
+    
+    fig3, ax3 = plt.subplots(figsize=(10, 6))
+    ax3 = sns.barplot(
+        x='length', y='out_percentage',
+        data=length_summary,
+        order=length_summary['length'],
+        palette='Set2'
+    )
+    ax3.bar_label(ax3.containers[0], fmt='%.1f%%', label_type='edge', padding=3, fontsize=10)
+    plt.title(f'Percentage of Outs by Bowl Length for {selected_batter}', fontsize=14, fontweight='bold')
+    plt.xlabel('Bowl Length', fontsize=12)
+    plt.ylabel('Percentage of Total Outs (%)', fontsize=12)
+    plt.xticks(rotation=45, ha='right')
+    plt.ylim(0, length_summary['out_percentage'].max() + 15 if total_outs > 0 else 100)
+    plt.tight_layout()
+    st.pyplot(fig3)
+
+    # Your Visualization 2: Percentage of Outs by Bowl Line
+    st.subheader(f"Percentage of Outs by Bowl Line for {selected_batter}")
+    line_summary = sub[sub['out'] == 1]['line'].value_counts().reset_index()
+    line_summary.columns = ['line', 'outs']
+    total_outs = line_summary['outs'].sum()
+    if total_outs > 0:
+        line_summary['percentage'] = 100 * line_summary['outs'] / total_outs
+    else:
+        line_summary['percentage'] = 0
+    line_summary = line_summary.sort_values('percentage', ascending=False)
+    
+    fig4, ax4 = plt.subplots(figsize=(8, 5))
+    ax4 = sns.barplot(x='line', y='percentage', data=line_summary, order=line_summary['line'], palette='Set1')
+    for p in ax4.patches:
+        ax4.text(p.get_x() + p.get_width() / 2, p.get_height(), f'{p.get_height():.1f}%', ha='center', va='bottom')
+    plt.title(f'Percentage of Outs by Bowl Line for {selected_batter}')
+    plt.xlabel('Bowl Line')
+    plt.ylabel('Percentage of Outs (%)')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    st.pyplot(fig4)
+
+    # Your Visualization 3: Percentage of Outs by Bowl Line and Length (Heatmap)
+    st.subheader(f"Percentage of Outs by Bowl Line and Length for {selected_batter}")
+    # Standardize the line column
+    sub['line'] = sub['line'].str.upper().str.replace(' ', '_')
+    pitch_data = sub[sub['out'] == 1].groupby(['line', 'length']).size().reset_index(name='out_count')
+    
+    # Map line and length to grid positions
+    line_map = {'WIDE_DOWN_LEG': 0, 'DOWN_LEG': 1, 'ON_THE_STUMPS': 2, 'OUTSIDE_OFFSTUMP': 3, 'WIDE_OUTSIDE_OFFSTUMP': 4}
+    length_map = {'YORKER': 0, 'FULL_TOSS': 1, 'FULL': 2, 'GOOD_LENGTH': 3, 'SHORT_OF_A_GOOD_LENGTH': 4, 'SHORT': 5}
+    pitch_data['line_idx'] = pitch_data['line'].map(line_map).astype(float)
+    pitch_data['length_idx'] = pitch_data['length'].map(length_map).astype(float)
+    pitch_data = pitch_data.dropna(subset=['line_idx', 'length_idx'])
+    
+    total_outs = pitch_data['out_count'].sum()
+    if total_outs > 0:
+        pitch_data['out_percentage'] = (pitch_data['out_count'] / total_outs) * 100
+    else:
+        pitch_data['out_percentage'] = 0
+    
+    # Create a complete grid
+    all_lines = list(line_map.values())
+    all_lengths = list(length_map.values())
+    all_combinations = pd.DataFrame(
+        [(length_idx, line_idx) for length_idx in all_lengths for line_idx in all_lines],
+        columns=['length_idx', 'line_idx']
+    )
+    pitch_data = all_combinations.merge(pitch_data, on=['length_idx', 'line_idx'], how='left').fillna({'out_percentage': 0})
+    
+    # Pivot for heatmap
+    pivot_outs_percent = pitch_data.pivot(index='length_idx', columns='line_idx', values='out_percentage')
+    
+    # Plot the heatmap
+    fig5, ax5 = plt.subplots(figsize=(10, 12))
+    ax5.add_patch(Rectangle((-1, -1), 6, 1, fill=True, color='white', alpha=0.7))
+    ax5.add_patch(Rectangle((-1, 5.5), 6, 1, fill=True, color='white', alpha=0.7))
+    ax5.plot([2.5, 2.5], [-1, 6], color='black', linestyle='--')
+    
+    if total_outs > 0:
+        sns.heatmap(pivot_outs_percent, annot=True, cmap='YlOrRd', fmt='.1f', cbar_kws={'label': 'Outs (%)'},
+                    ax=ax5, linewidths=1, linecolor='gray', alpha=1.0)
+    else:
+        sns.heatmap(pivot_outs_percent, annot=True, cmap='YlOrRd', fmt='.1f', cbar_kws={'label': 'Outs (%)'},
+                    ax=ax5, linewidths=1, linecolor='gray', alpha=1.0)
+        plt.text(2.5, 3, f'No dismissals for {selected_batter}', ha='center', va='center', fontsize=12, color='black')
+    
+    plt.title(f'Percentage of Outs by Bowl Line and Length for {selected_batter}', fontsize=14, fontweight='bold', pad=20)
+    plt.xlabel('Bowl Line (Left to Right)', fontsize=12)
+    plt.ylabel('Bowl Length (Top to Bottom)', fontsize=12)
+    plt.xticks([0.5, 1.5, 2.5, 3.5, 4.5], ['Wide Down Leg', 'Down Leg', 'On Stumps', 'Outside Off', 'Wide Outside Off'], rotation=45, ha='right')
+    plt.yticks([0.5, 1.5, 2.5, 3.5, 4.5, 5.5], ['Yorker', 'Full Toss', 'Full', 'Good Length', 'Short of Good', 'Short'])
+    ax5.set_xlim(-0.3, 5)
+    ax5.set_ylim(-0.1, 6)
+    plt.subplots_adjust(top=0.9)
+    st.pyplot(fig5)
 
 if __name__=="__main__":
     main()
