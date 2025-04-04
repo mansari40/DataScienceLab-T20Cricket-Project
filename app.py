@@ -345,7 +345,7 @@ def main():
     else:
         st.write("No bowling style data found.")
 
-    # Your Visualization 1: Percentage of Outs by Bowl Length (Updated)
+    # Your Visualization 1: Percentage of Outs by Bowl Length (Updated with Description)
     st.subheader(f"Percentage of Outs by Bowl Length for {selected_batter}")
     length_summary = (
         sub
@@ -374,12 +374,11 @@ def main():
     # Add percentage labels on all bars
     for i, bar in enumerate(ax3.patches):
         height = bar.get_height()
-        # If the bar height is very small, place the label inside the bar to avoid overlap
         if height < 5:  # Adjust this threshold as needed
             ax3.text(
-                bar.get_x() + bar.get_width() / 2,  # Center of the bar (x-coordinate)
-                height + 2,  # Slightly above the bar
-                f'{height:.1f}%',  # Percentage label
+                bar.get_x() + bar.get_width() / 2,
+                height + 2,
+                f'{height:.1f}%',
                 ha='center', va='bottom', fontsize=10
             )
         else:
@@ -397,7 +396,24 @@ def main():
     plt.tight_layout()
     st.pyplot(fig3)
 
-    # Your Visualization 2: Percentage of Outs by Bowl Line
+    # Add description for Visualization 1
+    if total_outs > 0:
+        max_length = length_summary.iloc[0]['length']
+        max_pct = length_summary.iloc[0]['out_percentage']
+        min_length = length_summary.iloc[-1]['length']
+        min_pct = length_summary.iloc[-1]['out_percentage']
+        description = f"""
+        **Insight**: {max_length} deliveries dismiss {selected_batter} most often ({max_pct:.1f}% of outs), making it the best length to bowl.  
+        In contrast, {min_length} deliveries are safest for the batter, with only {min_pct:.1f}% of dismissals.
+        """
+    else:
+        description = f"""
+        **Insight**: No dismissals recorded for {selected_batter} under the current filters.  
+        Try adjusting the filters to see dismissal patterns.
+        """
+    st.markdown(description)
+
+    # Your Visualization 2: Percentage of Outs by Bowl Line (Updated with Description)
     st.subheader(f"Percentage of Outs by Bowl Line for {selected_batter}")
     line_summary = sub[sub['out'] == 1]['line'].value_counts().reset_index()
     line_summary.columns = ['line', 'outs']
@@ -419,7 +435,24 @@ def main():
     plt.tight_layout()
     st.pyplot(fig4)
 
-    # Your Visualization 3: Percentage of Outs by Bowl Line and Length (Heatmap)
+    # Add description for Visualization 2
+    if total_outs > 0:
+        max_line = line_summary.iloc[0]['line']
+        max_pct = line_summary.iloc[0]['percentage']
+        min_line = line_summary.iloc[-1]['line']
+        min_pct = line_summary.iloc[-1]['percentage']
+        description = f"""
+        **Insight**: {max_line} deliveries are most likely to dismiss {selected_batter} ({max_pct:.1f}% of outs), making it the best line to target.  
+        Conversely, {min_line} deliveries are least effective, with only {min_pct:.1f}% of dismissals.
+        """
+    else:
+        description = f"""
+        **Insight**: No dismissals recorded for {selected_batter} under the current filters.  
+        Try adjusting the filters to see dismissal patterns.
+        """
+    st.markdown(description)
+
+    # Your Visualization 3: Percentage of Outs by Bowl Line and Length (Heatmap, Updated with Description)
     st.subheader(f"Percentage of Outs by Bowl Line and Length for {selected_batter}")
     # Standardize the line column
     sub['line'] = sub['line'].str.upper().str.replace(' ', '_')
@@ -460,7 +493,7 @@ def main():
         sns.heatmap(pivot_outs_percent, annot=True, cmap='YlOrRd', fmt='.1f', cbar_kws={'label': 'Outs (%)'},
                     ax=ax5, linewidths=1, linecolor='gray', alpha=1.0)
     else:
-        sns.heatmap(pivot_outs_percent, annot=True, cmap='YlOrRd', fmt='.1f', cbar_kws={'label': 'Outs (%)'},
+        sns.heatmap(pitch_data.pivot(index='length_idx', columns='line_idx', values='out_percentage'), annot=True, cmap='YlOrRd', fmt='.1f', cbar_kws={'label': 'Outs (%)'},
                     ax=ax5, linewidths=1, linecolor='gray', alpha=1.0)
         plt.text(2.5, 3, f'No dismissals for {selected_batter}', ha='center', va='center', fontsize=12, color='black')
     
@@ -473,6 +506,24 @@ def main():
     ax5.set_ylim(-0.1, 6)
     plt.subplots_adjust(top=0.9)
     st.pyplot(fig5)
+
+    # Add description for Visualization 3
+    if total_outs > 0:
+        # Find the line-length combination with the highest percentage
+        max_idx = pitch_data['out_percentage'].idxmax()
+        max_line = pitch_data.loc[max_idx, 'line']
+        max_length = pitch_data.loc[max_idx, 'length']
+        max_pct = pitch_data.loc[max_idx, 'out_percentage']
+        description = f"""
+        **Insight**: The {max_line} {max_length} combination is most effective, accounting for {max_pct:.1f}% of {selected_batter}'s dismissals.  
+        Bowlers should target this area to maximize chances of dismissal.
+        """
+    else:
+        description = f"""
+        **Insight**: No dismissals recorded for {selected_batter} under the current filters.  
+        Try adjusting the filters to see dismissal patterns.
+        """
+    st.markdown(description)
 
 if __name__=="__main__":
     main()
