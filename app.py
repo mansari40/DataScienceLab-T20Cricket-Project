@@ -8,7 +8,7 @@ from matplotlib.lines import Line2D
 import seaborn as sns  # Added for your visualizations
 
 @st.cache_data  # Data load once
-def ld(path="IPL_2018_2024_copy.xlsx"):
+def ld(path="IPL_2018_2024.xlsx"):
     df = pd.read_excel(path)
     cols = [
         "bat", "batruns", "out", "dismissal",
