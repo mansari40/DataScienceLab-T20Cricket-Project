@@ -345,7 +345,7 @@ def main():
     else:
         st.write("No bowling style data found.")
 
-    # Your Visualization 1: Percentage of Outs by Bowl Length
+    # Your Visualization 1: Percentage of Outs by Bowl Length (Updated)
     st.subheader(f"Percentage of Outs by Bowl Length for {selected_batter}")
     length_summary = (
         sub
@@ -371,7 +371,24 @@ def main():
         order=length_summary['length'],
         palette='Set2'
     )
-    ax3.bar_label(ax3.containers[0], fmt='%.1f%%', label_type='edge', padding=3, fontsize=10)
+    # Add percentage labels on all bars
+    for i, bar in enumerate(ax3.patches):
+        height = bar.get_height()
+        # If the bar height is very small, place the label inside the bar to avoid overlap
+        if height < 5:  # Adjust this threshold as needed
+            ax3.text(
+                bar.get_x() + bar.get_width() / 2,  # Center of the bar (x-coordinate)
+                height + 2,  # Slightly above the bar
+                f'{height:.1f}%',  # Percentage label
+                ha='center', va='bottom', fontsize=10
+            )
+        else:
+            ax3.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + 2,
+                f'{height:.1f}%',
+                ha='center', va='bottom', fontsize=10
+            )
     plt.title(f'Percentage of Outs by Bowl Length for {selected_batter}', fontsize=14, fontweight='bold')
     plt.xlabel('Bowl Length', fontsize=12)
     plt.ylabel('Percentage of Total Outs (%)', fontsize=12)
