@@ -1,3 +1,5 @@
+#Importing all required libraries
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -5,7 +7,7 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Wedge, Rectangle
 from matplotlib.lines import Line2D
-import seaborn as sns  # Added for your visualizations
+import seaborn as sns  
 
 @st.cache_data  # Data load once
 def ld(path="IPL_2018_2024.xlsx"):
@@ -45,7 +47,7 @@ def shift_coords(df):
 def sd(df):
     zone_ct = df.groupby(["line", "length", "wagonZone"]).size().reset_index(name="ShotsInZone")
     total_ct = df.groupby(["line", "length"]).size().reset_index(name="AllShots")
-    merged = pd.merge(zone_ct, total_ct, on=["line", "length"], how="left")  # Fixed the non-printable character here
+    merged = pd.merge(zone_ct, total_ct, on=["line", "length"], how="left") 
     def calc_sd(row):
         if row["ShotsInZone"] == 0:
             return 1.0
