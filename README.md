@@ -10,7 +10,7 @@ Wagon Zone Wheel: Maps scoring zones (1-8) with strike rates, runs, and dismissa
 Shot Difficulty Analysis: Calculates and visualizes shot difficulty by line, length, and zone.
 
 
-# Dismissal Trends:
+# Dismissal Trends
 Bar charts for outs by line and length.
 Heatmap showing dismissal percentages across line-length combinations.
 Bowling Style Breakdown: Compares batter performance against specific bowling styles (e.g., RFM, OB) with metrics like strike rate, boundary%, and impact per 100 balls.
@@ -50,6 +50,6 @@ Explore the "Data Analysis" tab for visualizations and insights.
 Use the "Help" tab to understand the data variables.
 
 # Contributors
-Sai Arun
-Mustafa
+Sai Arun,
+Mustafa &
 Mitali
