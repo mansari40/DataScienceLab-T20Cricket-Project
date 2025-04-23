@@ -13,7 +13,7 @@ def ld(path="IPL_2018_2024.xlsx"):
     cols = [
         "bat", "batruns", "out", "dismissal",
         "wagonX", "wagonY", "wagonZone", "line", "length",
-        "control", "bowl_style", "year", "bat_hand"
+        "bowl_style", "year", "bat_hand"
     ]
     df = df[[c for c in cols if c in df.columns]].drop_duplicates()
     if "year" in df.columns:
@@ -271,15 +271,12 @@ def main():
     else:
         year_range = None
     bowler_type = st.sidebar.radio("Bowler Type", ["All", "Spin", "Pace"])
-    control = st.sidebar.checkbox("Only Controlled Shots?", value=True)
 
     sub = df[df["bat"] == selected_batter].copy()
     if year_range and "year" in sub.columns:
         sub = sub[(sub["year"] >= year_range[0]) & (sub["year"] <= year_range[1])]
     if bowler_type != "All":
         sub = sub[sub["bowler_type"] == bowler_type]
-    if control and "control" in sub.columns:
-        sub = sub[sub["control"] == 1]
 
     if sub.empty:
         st.warning("No data found for the selected filters.")
@@ -349,10 +346,9 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        tab1, tab2, tab3, tab4 = st.tabs([
             "Wagon Wheels", "Dismissal Analysis", "Bowling Style Stats",
-            "Scoring Patterns Over Time", "Control vs. Non-Control Shots",
-            "Pressure Situations Analysis", "Bowler Type Matchup"
+            "Scoring Patterns Over Time"
         ])
 
         with tab1:
@@ -549,13 +545,17 @@ def main():
                         [(length_idx, line_idx) for length_idx in all_lengths for line_idx in all_lines],
                         columns=['length_idx', 'line_idx']
                     )
-                    heatmap_data = all_combinations.merge(pitch_data[['line_idx', 'length_idx', 'out_percentage', 'out_count']], 
-                                                        on=['length_idx', 'line_idx'], how='left').fillna({'out_percentage': 0, 'out_count': 0})
-                    heatmap_data = heatmap_data.merge(total_balls_per_combination, 
-                                                    left_on=['line_idx', 'length_idx'], 
-                                                    right_on=[total_balls_per_combination['line'].map(line_map), 
-                                                              total_balls_per_combination['length'].map(length_map)], 
-                                                    how='left').fillna({'total_balls': 0})
+                    heatmap_data = all_combinations.merge(
+                        pitch_data[['line_idx', 'length_idx', 'out_percentage', 'out_count']],
+                        on=['length_idx', 'line_idx'],
+                        how='left'
+                    ).fillna({'out_percentage': 0, 'out_count': 0})
+                    heatmap_data = heatmap_data.merge(
+                        total_balls_per_combination,
+                        left_on=['line_idx', 'length_idx'],
+                        right_on=[total_balls_per_combination['line'].map(line_map), total_balls_per_combination['length'].map(length_map)],
+                        how='left'
+                    ).fillna({'total_balls': 0})
                     pivot_outs_percent = heatmap_data.pivot(index='length_idx', columns='line_idx', values='out_percentage')
                     fig5, ax5 = plt.subplots(figsize=(10, 12))
                     ax5.add_patch(Rectangle((-1, -1), 6, 1, fill=True, color='white', alpha=0.7))
@@ -713,157 +713,6 @@ def main():
             else:
                 st.markdown("**Error**: 'year' column not found.")
 
-        with tab5:
-            st.subheader(f"Control vs. Non-Control Shots for {selected_batter}")
-            if 'control' in sub.columns:
-                controlled = sub[sub['control'] == 1]
-                non_controlled = sub[sub['control'] == 0]
-                control_stats = pd.DataFrame({
-                    'Type': ['Controlled', 'Non-Controlled'],
-                    'Balls': [len(controlled), len(non_controlled)],
-                    'Runs': [controlled['batruns'].sum(), non_controlled['batruns'].sum()],
-                    'Dismissals': [controlled['dismissal'].notna().sum(), non_controlled['dismissal'].notna().sum()],
-                    'Boundaries': [controlled['batruns'].isin([4, 6]).sum(), non_controlled['batruns'].isin([4, 6]).sum()],
-                    'Dots': [(controlled['batruns'] == 0).sum(), (non_controlled['batruns'] == 0).sum()]
-                })
-                control_stats['Strike Rate'] = 100 * control_stats['Runs'] / control_stats['Balls']
-                control_stats['Boundary%'] = 100 * control_stats['Boundaries'] / control_stats['Balls']
-                control_stats['Dismissal Rate'] = 100 * control_stats['Dismissals'] / control_stats['Balls']
-
-                fig8, ax8 = plt.subplots(figsize=(6, 6))
-                ax8.pie(control_stats['Balls'], labels=control_stats['Type'], autopct='%1.1f%%', colors=['#66c2a5', '#fc8d62'])
-                plt.title(f'Proportion of Balls Faced: Controlled vs. Non-Controlled for {selected_batter}')
-                plt.tight_layout()
-                st.pyplot(fig8)
-
-                fig9, ax9 = plt.subplots(figsize=(10, 6))
-                metrics = ['Strike Rate', 'Boundary%', 'Dismissal Rate']
-                x = np.arange(len(metrics))
-                width = 0.35
-                ax9.bar(x - width/2, control_stats[metrics].iloc[0], width, label='Controlled', color='#66c2a5')
-                ax9.bar(x + width/2, control_stats[metrics].iloc[1], width, label='Non-Controlled', color='#fc8d62')
-                ax9.set_xticks(x)
-                ax9.set_xticklabels(metrics)
-                ax9.set_ylabel('Percentage')
-                ax9.set_title(f'Performance Metrics: Controlled vs. Non-Controlled Shots for {selected_batter}')
-                ax9.legend()
-                plt.tight_layout()
-                st.pyplot(fig9)
-
-                if control_stats['Balls'].sum() > 0:
-                    controlled_runs_pct = 100 * control_stats['Runs'].iloc[0] / control_stats['Runs'].sum()
-                    non_controlled_dismissal_zone = non_controlled[non_controlled['dismissal'].notna()]['wagonZone'].mode().iloc[0] if not non_controlled[non_controlled['dismissal'].notna()].empty else "N/A"
-                    st.markdown(f"""
-                    **Insights**:
-                    - **Run Contribution**: {controlled_runs_pct:.1f}% of {selected_batter}'s runs come from controlled shots, with a strike rate of {control_stats['Strike Rate'].iloc[0]:.1f}, compared to {control_stats['Strike Rate'].iloc[1]:.1f} on non-controlled shots.
-                    - **Dismissal Risk**: Non-controlled shots have a dismissal rate of {control_stats['Dismissal Rate'].iloc[1]:.1f}%, compared to {control_stats['Dismissal Rate'].iloc[0]:.1f}% for controlled shots.
-                    - **Non-Controlled Dismissal Zone**: Most dismissals on non-controlled shots occur in Zone {non_controlled_dismissal_zone}.
-                    - **Takeaway**: {selected_batter} should focus on improving shot control to reduce dismissals, while bowlers can target Zone {non_controlled_dismissal_zone} to induce edges.
-                    """)
-            else:
-                st.markdown("**Error**: 'control' column not found.")
-
-        with tab6:
-            st.subheader(f"Pressure Situations Analysis for {selected_batter}")
-            sub_sorted = sub.sort_index()
-            sub_sorted['dot'] = (sub_sorted['batruns'] == 0).astype(int)
-            sub_sorted['dot_sequence'] = (sub_sorted['dot'].diff() != 0).cumsum()
-            dot_sequences = sub_sorted[sub_sorted['dot'] == 1].groupby('dot_sequence').size().reset_index(name='sequence_length')
-            dot_sequences = dot_sequences[dot_sequences['sequence_length'] >= 2]
-            pressure_balls = []
-            for seq_id in dot_sequences['dot_sequence']:
-                seq_end_idx = sub_sorted[sub_sorted['dot_sequence'] == seq_id].index[-1]
-                next_ball_idx = seq_end_idx + 1
-                if next_ball_idx in sub_sorted.index:
-                    pressure_balls.append(next_ball_idx)
-            pressure_df = sub_sorted.loc[pressure_balls] if pressure_balls else pd.DataFrame()
-            pressure_dismissals = pressure_df['dismissal'].notna().sum() if not pressure_df.empty else 0
-            pressure_dismissal_rate = 100 * pressure_dismissals / len(pressure_balls) if pressure_balls else 0
-            pressure_sr = 100 * pressure_df['batruns'].sum() / len(pressure_df) if not pressure_df.empty else 0
-
-            fig10, ax10 = plt.subplots(figsize=(8, 5))
-            sequence_counts = dot_sequences['sequence_length'].value_counts().sort_index()
-            sns.barplot(x=sequence_counts.index, y=sequence_counts.values, palette='Set2')
-            plt.title(f'Frequency of Consecutive Dot Ball Sequences for {selected_batter}')
-            plt.xlabel('Number of Consecutive Dot Balls')
-            plt.ylabel('Frequency')
-            plt.tight_layout()
-            st.pyplot(fig10)
-
-            if not dot_sequences.empty:
-                max_sequence_length = dot_sequences['sequence_length'].max()
-                max_sequence_count = dot_sequences['sequence_length'].value_counts().max()
-                st.markdown(f"""
-                **Insights**:
-                - **Pressure Frequency**: {selected_batter} faced {len(dot_sequences)} sequences of 2+ consecutive dot balls, with the longest being {max_sequence_length} dot balls.
-                - **Dismissal After Pressure**: The dismissal rate after a dot ball sequence is {pressure_dismissal_rate:.1f}%.
-                - **Strike Rate After Pressure**: {selected_batter}'s strike rate after a dot ball sequence is {pressure_sr:.1f}, compared to their overall strike rate of {sr_val:.1f}.
-                - **Takeaway**: {selected_batter} should work on rotating the strike to avoid pressure, while bowlers can build pressure with dot balls to increase dismissal chances.
-                """)
-            else:
-                st.markdown("**Insights**: No sequences of 2+ consecutive dot balls found for this selection.")
-
-        with tab7:
-            st.subheader(f"Bowler Type Matchup: Spin vs. Pace for {selected_batter}")
-            spin_data = sub[sub['bowler_type'] == 'Spin']
-            pace_data = sub[sub['bowler_type'] == 'Pace']
-            matchup_stats = pd.DataFrame({
-                'Bowler Type': ['Spin', 'Pace'],
-                'Balls': [len(spin_data), len(pace_data)],
-                'Runs': [spin_data['batruns'].sum(), pace_data['batruns'].sum()],
-                'Dismissals': [spin_data['dismissal'].notna().sum(), pace_data['dismissal'].notna().sum()],
-                'Boundaries': [spin_data['batruns'].isin([4, 6]).sum(), pace_data['batruns'].isin([4, 6]).sum()]
-            })
-            matchup_stats['Strike Rate'] = 100 * matchup_stats['Runs'] / matchup_stats['Balls']
-            matchup_stats['Boundary%'] = 100 * matchup_stats['Boundaries'] / matchup_stats['Balls']
-
-            fig11, ax11 = plt.subplots(figsize=(8, 5))
-            metrics = ['Strike Rate', 'Boundary%']
-            x = np.arange(len(metrics))
-            width = 0.35
-            ax11.bar(x - width/2, matchup_stats[metrics].iloc[0], width, label='Spin', color='#8da0cb')
-            ax11.bar(x + width/2, matchup_stats[metrics].iloc[1], width, label='Pace', color='#fc8d62')
-            ax11.set_xticks(x)
-            ax11.set_xticklabels(metrics)
-            ax11.set_ylabel('Percentage')
-            ax11.set_title(f'Strike Rate and Boundary% Against Spin vs. Pace for {selected_batter}')
-            ax11.legend()
-            plt.tight_layout()
-            st.pyplot(fig11)
-
-            if 'wagonZone' in sub.columns:
-                spin_zone_runs = spin_data.groupby('wagonZone')['batruns'].sum().reindex(range(1, 9), fill_value=0)
-                pace_zone_runs = pace_data.groupby('wagonZone')['batruns'].sum().reindex(range(1, 9), fill_value=0)
-                total_spin_runs = spin_zone_runs.sum()
-                total_pace_runs = pace_zone_runs.sum()
-                spin_zone_pct = 100 * spin_zone_runs / total_spin_runs if total_spin_runs > 0 else pd.Series(0, index=spin_zone_runs.index)
-                pace_zone_pct = 100 * pace_zone_runs / total_pace_runs if total_pace_runs > 0 else pd.Series(0, index=pace_zone_runs.index)
-                fig12, (ax12_1, ax12_2) = plt.subplots(ncols=2, figsize=(12, 5))
-                sns.heatmap(spin_zone_pct.values.reshape(1, -1), annot=True, cmap='YlGnBu', fmt='.1f', ax=ax12_1,
-                            xticklabels=range(1, 9), yticklabels=['Spin'], cbar_kws={'label': 'Run %'})
-                ax12_1.set_title('Run Distribution by Zone Against Spin')
-                sns.heatmap(pace_zone_pct.values.reshape(1, -1), annot=True, cmap='YlGnBu', fmt='.1f', ax=ax12_2,
-                            xticklabels=range(1, 9), yticklabels=['Pace'], cbar_kws={'label': 'Run %'})
-                ax12_2.set_title('Run Distribution by Zone Against Pace')
-                plt.tight_layout()
-                st.pyplot(fig12)
-
-                if matchup_stats['Balls'].sum() > 0:
-                    preferred_type = 'Pace' if matchup_stats['Strike Rate'].iloc[1] > matchup_stats['Strike Rate'].iloc[0] else 'Spin'
-                    spin_fav_zone = spin_zone_pct.idxmax()
-                    pace_fav_zone = pace_zone_pct.idxmax()
-                    spin_fav_zone_pct = spin_zone_pct.max()
-                    pace_fav_zone_pct = pace_zone_pct.max()
-                    st.markdown(f"""
-                    **Insights**:
-                    - **Preference**: {selected_batter} has a strike rate of {matchup_stats['Strike Rate'].iloc[1]:.1f} against Pace and {matchup_stats['Strike Rate'].iloc[0]:.1f} against Spin, indicating a preference for {preferred_type}.
-                    - **Scoring Against Spin**: Zone {spin_fav_zone} is the most productive against spin, contributing {spin_fav_zone_pct:.1f}% of runs.
-                    - **Scoring Against Pace**: Zone {pace_fav_zone} dominates against pace, with {pace_fav_zone_pct:.1f}% of runs.
-                    - **Takeaway**: {selected_batter} should work on diversifying scoring against {'Spin' if preferred_type == 'Pace' else 'Pace'}, while bowlers can use {preferred_type.lower()} to target weaker zones.
-                    """)
-            else:
-                st.markdown("**Error**: 'wagonZone' column not found.")
-
     with help_tab:
         st.header("Help: Understanding the Variables")
         st.markdown("""
@@ -877,7 +726,6 @@ def main():
         - **wagonZone**: Zone (1-8) where the ball was hit, representing field areas (e.g., cover, mid-wicket).
         - **line**: Line of the delivery (e.g., "outside offstump", "down leg").
         - **length**: Length of the delivery (e.g., "full", "short").
-        - **control**: Whether the shot was controlled (1) or not (0).
         - **bowl_style**: Bowling style (e.g., "RF" for Right Fast, "OB" for Off Break).
         - **year**: Year of the match.
         - **bat_hand**: Batter’s handedness (e.g., "RHB" for right-handed batter).
