@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Wedge, Rectangle
 from matplotlib.lines import Line2D
 import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 
 @st.cache_data
 def ld(path="IPL_2018_2024.xlsx"):
@@ -13,7 +15,7 @@ def ld(path="IPL_2018_2024.xlsx"):
     cols = [
         "bat", "batruns", "out", "dismissal",
         "wagonX", "wagonY", "wagonZone", "line", "length",
-        "bowl_style", "year", "bat_hand"
+        "bowl_style", "year", "bat_hand", "over", "ballfaced", "shot"
     ]
     df = df[[c for c in cols if c in df.columns]].drop_duplicates()
     if "year" in df.columns:
@@ -346,9 +348,9 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        tab1, tab2, tab3, tab4 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "Wagon Wheels", "Dismissal Analysis", "Bowling Style Stats",
-            "Scoring Patterns Over Time"
+            "Scoring Patterns Over Time", "Match-up Analysis", "Prediction Model"
         ])
 
         with tab1:
@@ -713,27 +715,155 @@ def main():
             else:
                 st.markdown("**Error**: 'year' column not found.")
 
-    with help_tab:
-        st.header("Help: Understanding the Variables")
-        st.markdown("""
-        This section explains the key variables used in the app, based on the dataset `IPL_2018_2024.xlsx`:
+    with tab5:
+        st.subheader(f"Match-Up Analysis by Phase and Bowling Style: {selected_batter}")
 
-        - **bat**: Batter’s name.
-        - **batruns**: Runs scored by the batter on a delivery (e.g., 0, 1, 2, 4, 6).
-        - **out**: Indicates if the batter was out (1) or not (0).
-        - **dismissal**: Type of dismissal (e.g., caught, bowled), if applicable.
-        - **wagonX, wagonY**: Coordinates of where the ball landed or was hit, used for wagon wheel visualizations.
-        - **wagonZone**: Zone (1-8) where the ball was hit, representing field areas (e.g., cover, mid-wicket).
-        - **line**: Line of the delivery (e.g., "outside offstump", "down leg").
-        - **length**: Length of the delivery (e.g., "full", "short").
-        - **bowl_style**: Bowling style (e.g., "RF" for Right Fast, "OB" for Off Break).
-        - **year**: Year of the match.
-        - **bat_hand**: Batter’s handedness (e.g., "RHB" for right-handed batter).
-        - **bowler_type**: Derived as "Spin", "Pace", or "Unknown" based on `bowl_style`.
-        - **shot_difficulty**: Calculated metric reflecting how challenging a shot is based on line, length, and zone.
+        if "over" in sub.columns and "bowl_style" in sub.columns:
+        # Add phase column
+            def get_phase(over):
+                if over <= 6:
+                    return 'Powerplay'
+                elif over <= 15:
+                    return 'Middle'
+                else:
+                    return 'Death'
 
-        These variables drive the visualizations and insights, helping analyze batter performance in the IPL context.
-        """)
+            sub["phase"] = sub["over"].apply(get_phase)
+
+            matchup_df = sub.groupby(["bowl_style", "phase"]).agg(
+            balls_faced=("ballfaced", "sum"),
+            runs_scored=("batruns", "sum"),
+            dismissals=("out", "sum")
+            ).reset_index()
+
+            matchup_df["strike_rate"] = (matchup_df["runs_scored"] / matchup_df["balls_faced"]) * 100
+            matchup_df["average"] = matchup_df.apply(
+            lambda x: x["runs_scored"] / x["dismissals"] if x["dismissals"] > 0 else float("inf"), axis=1
+            )
+
+            def get_tactic(row):
+                if row["average"] <= 25 and row["strike_rate"] <= 110:
+                    return f"✅ Use {row['bowl_style']} in {row['phase']}"
+                elif row["average"] >= 35 and row["strike_rate"] >= 130:
+                    return f"❌ Avoid {row['bowl_style']} in {row['phase']}"
+                else:
+                    return f"🟡 Neutral vs {row['bowl_style']} in {row['phase']}"
+
+            matchup_df["tactic"] = matchup_df.apply(get_tactic, axis=1)
+
+            # Clean + round for display
+            matchup_df["strike_rate"] = matchup_df["strike_rate"].round(1)
+            matchup_df["average"] = matchup_df["average"].apply(lambda x: round(x, 1) if math.isfinite(x) else "∞")
+
+            # Show the final DataFrame
+            st.dataframe(matchup_df[[
+                "bowl_style", "phase", "balls_faced", "runs_scored", 
+                "strike_rate", "average", "tactic"
+            ]])
+
+            st.markdown("""
+            **Tactical Guide**:
+        -     ✅ *Use*: This phase-style combo is effective for dismissing or containing the batter.
+        -     ❌ *Avoid*: Batter dominates in this situation — high SR & Avg.
+        -     🟡 *Neutral*: No clear advantage either way.
+            """)
+        else:
+            st.warning("Required columns 'over' or 'bowl_style' not found in dataset.")
+
+    with tab6:
+        st.subheader("Dismissal Prediction Model")
+
+        required_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'out', 'over']
+        missing_cols = [col for col in required_cols if col not in sub.columns]
+
+        if missing_cols:
+            st.error(f"Missing required columns for model: {', '.join(missing_cols)}")
+        elif sub.empty:
+            st.warning("No data available under current filters to train prediction model.")
+        else:
+            df_model = sub[required_cols].dropna().copy()
+
+            if df_model.empty:
+                st.warning("No usable rows after dropping missing values.")
+            else:
+                # Step 1: Add phase column before selecting features
+                def get_phase(over):
+                    if over <= 6:
+                        return 'Powerplay'
+                    elif over <= 15:
+                        return 'Middle'
+                    else:
+                        return 'Death'
+
+                df_model['phase'] = df_model['over'].apply(get_phase)
+
+                # Step 2: Select features
+                feature_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'phase']
+                X = df_model[feature_cols]
+                y = df_model['out']
+
+                # Step 3: Encode & Train
+                X_encoded = pd.get_dummies(X)
+                X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.3, random_state=42)
+
+                rf_balanced = RandomForestClassifier(class_weight='balanced', random_state=42)
+                rf_balanced.fit(X_train, y_train)
+
+                # Step 4: User input
+                st.markdown("### Enter Match Conditions")
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    bat_hand = st.selectbox("Batter Hand", ['RHB', 'LHB'])
+                    bowl_style = st.selectbox("Bowling Style", df_model['bowl_style'].unique())
+                    line = st.selectbox("Line", df_model['line'].unique())
+
+                with col2:
+                    length = st.selectbox("Length", df_model['length'].unique())
+                    shot = st.selectbox("Shot Type", df_model['shot'].unique())
+                    phase = st.selectbox("Match Phase", ['Powerplay', 'Middle', 'Death'])
+
+                # Step 5: Encode user input
+                user_input = pd.DataFrame([{
+                    'bat_hand': bat_hand,
+                    'bowl_style': bowl_style,
+                    'line': line,
+                    'length': length,
+                    'shot': shot,
+                    'phase': phase
+                }])
+                user_encoded = pd.get_dummies(user_input)
+                user_encoded = user_encoded.reindex(columns=X_encoded.columns, fill_value=0)
+
+                # Step 6: Predict
+                prediction = rf_balanced.predict(user_encoded)[0]
+                probability = rf_balanced.predict_proba(user_encoded)[0][1]
+
+                st.markdown("### Prediction Outcome")
+                st.write(f"**Will {selected_batter} get out?** {'🟥 Yes' if prediction == 1 else '🟩 No'}")
+                st.write(f"**Probability of Dismissal:** {round(probability * 100, 2)} %")
+
+        with help_tab:
+            st.header("Help: Understanding the Variables")
+            st.markdown("""
+            This section explains the key variables used in the app, based on the dataset `IPL_2018_2024.xlsx`:
+
+            -**bat**: Batter’s name.
+            - **batruns**: Runs scored by the batter on a delivery (e.g., 0, 1, 2, 4, 6).
+            - **out**: Indicates if the batter was out (1) or not (0).
+            - **dismissal**: Type of dismissal (e.g., caught, bowled), if applicable.
+            - **wagonX, wagonY**: Coordinates of where the ball landed or was hit, used for wagon wheel visualizations.
+            - **wagonZone**: Zone (1-8) where the ball was hit, representing field areas (e.g., cover, mid-wicket).
+            - **line**: Line of the delivery (e.g., "outside offstump", "down leg").
+            - **length**: Length of the delivery (e.g., "full", "short").
+            - **bowl_style**: Bowling style (e.g., "RF" for Right Fast, "OB" for Off Break).
+            - **year**: Year of the match.
+            - **bat_hand**: Batter’s handedness (e.g., "RHB" for right-handed batter).
+            - **bowler_type**: Derived as "Spin", "Pace", or "Unknown" based on `bowl_style`.
+            - **shot_difficulty**: Calculated metric reflecting how challenging a shot is based on line, length, and zone.
+
+            These variables drive the visualizations and insights, helping analyze batter performance in the IPL context.
+            """)
 
 if __name__ == "__main__":
     main()
