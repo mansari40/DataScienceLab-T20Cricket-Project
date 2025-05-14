@@ -844,25 +844,137 @@ def main():
                 st.write(f"**Probability of Dismissal:** {round(probability * 100, 2)} %")
 
         with help_tab:
-            st.header("Help: Understanding the Variables")
+            st.header("🏏 T20 Cricket Analytics App: Comprehensive User Guide")
+            
             st.markdown("""
-            This section explains the key variables used in the app, based on the dataset `IPL_2018_2024.xlsx`:
+            ## 📚 Cricket 101: Essential Terms
+            
+            Cricket is a popular sport played between two teams of 11 players. Key terms:
+            
+            - **Runs 🏃‍♂️**: Points scored by batters.
+            - **Boundary (4️⃣/6️⃣)**: Ball hits (4 runs) or crosses boundary without bouncing (6 runs).
+            - **Dismissal (Out 🚫)**: Ending batter’s innings through various methods (caught, bowled, etc.).
+            - **Strike Rate (SR) 💥**: `(Runs ÷ Balls faced) × 100`; reflects batting aggressiveness.
+            - **Batting Average 📈**: `Runs ÷ Dismissals`; indicates consistency.
 
-            -**bat**: Batter’s name.
-            - **batruns**: Runs scored by the batter on a delivery (e.g., 0, 1, 2, 4, 6).
-            - **out**: Indicates if the batter was out (1) or not (0).
-            - **dismissal**: Type of dismissal (e.g., caught, bowled), if applicable.
-            - **wagonX, wagonY**: Coordinates of where the ball landed or was hit, used for wagon wheel visualizations.
-            - **wagonZone**: Zone (1-8) where the ball was hit, representing field areas (e.g., cover, mid-wicket).
-            - **line**: Line of the delivery (e.g., "outside offstump", "down leg").
-            - **length**: Length of the delivery (e.g., "full", "short").
-            - **bowl_style**: Bowling style (e.g., "RF" for Right Fast, "OB" for Off Break).
-            - **year**: Year of the match.
-            - **bat_hand**: Batter’s handedness (e.g., "RHB" for right-handed batter).
-            - **bowler_type**: Derived as "Spin", "Pace", or "Unknown" based on `bowl_style`.
-            - **shot_difficulty**: Calculated metric reflecting how challenging a shot is based on line, length, and zone.
+            ## 🎯 Bowling Lines and Lengths
 
-            These variables drive the visualizations and insights, helping analyze batter performance in the IPL context.
+            **Line (Horizontal direction 🎳):**
+
+            - **Wide Outside Off:** Far outside off-side.
+            - **Outside Off:** Slightly outside off-stump.
+            - **On Stumps:** Directly targeting wickets.
+            - **Down Leg:** Towards batter’s leg side.
+
+            **Length (Distance from batter 🛣️):**
+
+            - **Yorker:** Near batter’s feet.
+            - **Full:** Close to batter.
+            - **Good Length:** Optimal for bowlers, challenging for batters.
+            - **Short:** Far from batter, resulting in higher bounce.
+
+            ## 📊 Visualizations Explained
+
+            **🌀 Wagon Wheel Charts**:
+
+            - **General Wagon Wheel**: Shows batter’s boundary distribution.
+            - **Intelligent Wagon Wheel**: Highlights boundary difficulty; thicker lines indicate harder, more valuable shots.
+
+            **🎡 Wagon Zone Wheel**: Divides field into 8 strategic scoring zones.
+
+            **🔥 Dismissal Heatmaps**: Visualize dismissal frequency based on delivery line and length.
+
+            ## 📈 Performance Metrics
+
+            | Metric | Meaning |
+            |--------|---------|
+             | **Balls 🎱** | Balls faced by batter |
+            | **Runs 🏅** | Total runs scored |
+            | **Strike Rate (SR 💥)** | Runs per 100 balls |
+            | **Dismissals 🚫** | Times batter dismissed |
+            | **Boundary % 🏖️** | Percentage of balls hit for boundaries |
+            | **Dot Ball % ⭕️** | Percentage of balls without runs |
+            | **Impact 🌟** | Overall effectiveness per 100 balls |
+
+            ## 🧠 Dismissal Prediction Model
+
+            Predict likelihood of batter dismissal based on:
+
+            - Batter handedness
+            - Bowling style
+            - Delivery type (line/length)
+            - Match phase (Powerplay, Middle, Death)
+
+            Get immediate predictions for strategic match insights.
+
+            ## 🛡️ Tactical Match-Up Analysis
+
+            Analyze batter performance during:
+
+            - **Powerplay (Overs 1–6 🚀)**: Aggressive batting.
+            - **Middle Overs (7–15 ⚖️)**: Tactical gameplay.
+            - **Death Overs (16–20 💣)**: High-intensity phase.
+
+            Tactical symbols:
+
+            - ✅ **Recommended**: Ideal bowling strategy.
+            - ❌ **Avoid**: Batter dominates scenario.
+            - 🟡 **Neutral**: Balanced effectiveness.
+
+            ## ❓ FAQs
+
+            - **What is T20 Cricket?**
+              - Fast-paced cricket format, each team batting for 20 overs.
+            - **Purpose of Wagon Wheels?**
+              - Highlight scoring directions and tendencies.
+            - **Why cricket analytics?**
+              - Uncover insights, improve strategies, and boost performance.
+
+            ## 📋 Dataset Variables
+
+            IPL data (2018-2024) variables:
+
+            | Variable 📂 | Explanation 📝 |
+            |-------------|----------------|
+            | **bat** | Batter's name |
+            | **batruns** | Runs per delivery |
+            | **out** | Indicates dismissal (1=yes, 0=no) |
+            | **dismissal** | Type of dismissal |
+            | **wagonX/Y** | Coordinates on field |
+            | **wagonZone** | Field area hit (zones 1–8) |
+            | **line** | Direction of ball delivery |
+            | **length** | Distance ball pitches from batter |
+            | **bowl_style** | Bowling style (spin/pace variations) |
+            | **bat_hand** | Batter's preferred hand |
+            | **shot_difficulty** | Calculated difficulty metric |
+
+            ## 🌐 Further Resources
+
+            - [ICC Website](https://www.icc-cricket.com)
+            - [IPL Official Website](https://www.iplt20.com)
+            - [CricViz Analytics](https://cricviz.com)
+
+            ## 📩 Contact & Support
+
+            Have questions or feedback?
+
+            - **Mustafa:** mustafa.ansari@gmail.com
+            
+
+            ## 🎯 Quick Start Guide
+
+            1. Select a batter from sidebar.
+            2. Adjust year and bowling filters.
+            3. Explore visual and analytical tabs.
+            4. Use predictions for strategic decisions.
+
+            ## 🖼️ Visual Legend
+
+            - **Green Line**: 4-run boundary.
+            - **Purple Line**: 6-run boundary.
+            - **Heatmap (Red/Orange)**: Dismissal risk level.
+
+            **Enjoy your journey through advanced T20 Cricket Analytics! 🏏📈✨**
             """)
 
 if __name__ == "__main__":
