@@ -274,8 +274,28 @@ def main():
     else:
         year_range = None
     bowler_type = st.sidebar.radio("Bowler Type", ["All", "Spin", "Pace"])
-    if st.sidebar.button("Generate", key="generate_button", help="Click to update output with new parameters", style={"background-color": "red", "color": "white"}):
+    if st.sidebar.button("Generate", key="generate_button", help="Click to update output with new parameters"):
         st.experimental_rerun()
+
+    st.sidebar.markdown(
+        """
+        <style>
+        button[kind="primary"][id="generate_button"] {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button[kind="primary"][id="generate_button"]:hover {
+            background-color: darkred;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
     sub = df[df["bat"] == selected_batter].copy()
     if year_range and "year" in sub.columns:
