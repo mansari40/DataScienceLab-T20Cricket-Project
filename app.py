@@ -350,8 +350,8 @@ def main():
         """, unsafe_allow_html=True)
 
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-            "Wagon Wheels", "Dismissal Analysis", "Bowling Style Stats",
-            "Scoring Patterns Over Time", "Match-up Analysis", "Prediction Model"
+            "Wagon Wheels", "Scoring Patterns Over Time", "Dismissal Analysis",
+            "Bowling Style Stats", "Match-up Analysis", "Prediction Model"
         ])
 
         with tab1:
@@ -429,6 +429,61 @@ def main():
                 st.markdown("**Insights**: No valid zone data available for this selection.")
 
         with tab2:
+            st.subheader(f"Scoring Patterns Over Time for {selected_batter}")
+            if 'year' in sub.columns:
+                yearly_stats = sub.groupby('year').agg(
+                    total_runs=('batruns', 'sum'),
+                    total_balls=('batruns', 'count'),
+                    dismissals=('dismissal', lambda x: x.notna().sum()),
+                    boundaries=('batruns', lambda x: x.isin([4, 6]).sum()),
+                    dots=('batruns', lambda x: (x == 0).sum())
+                ).reset_index()
+                yearly_stats['strike_rate'] = 100 * yearly_stats['total_runs'] / yearly_stats['total_balls']
+                years = sorted(yearly_stats['year'].unique())
+                fig6, ax6 = plt.subplots(figsize=(10, 6))
+                ax6.plot(yearly_stats['year'], yearly_stats['strike_rate'], marker='o', label='Strike Rate', color='blue')
+                ax6.set_xlabel('Year')
+                ax6.set_ylabel('Strike Rate', color='blue')
+                ax6.tick_params(axis='y', labelcolor='blue')
+                ax6_2 = ax6.twinx()
+                ax6_2.plot(yearly_stats['year'], yearly_stats['total_runs'], marker='o', label='Total Runs', color='orange')
+                ax6_2.set_ylabel('Total Runs', color='orange')
+                ax6_2.tick_params(axis='y', labelcolor='orange')
+                ax6.set_xticks(years)
+                ax6.set_xticklabels(years, rotation=45)
+                fig6.legend(loc='upper left')
+                plt.title(f'Strike Rate and Runs Over Time for {selected_batter}')
+                plt.tight_layout()
+                st.pyplot(fig6)
+
+                fig7, ax7 = plt.subplots(figsize=(8, 5))
+                sns.barplot(x='year', y='dismissals', data=yearly_stats, palette='Set2')
+                ax7.set_xticks(range(len(years)))
+                ax7.set_xticklabels(years, rotation=45)
+                plt.title(f'Dismissals Per Year for {selected_batter}')
+                plt.xlabel('Year')
+                plt.ylabel('Number of Dismissals')
+                plt.tight_layout()
+                st.pyplot(fig7)
+
+                if not yearly_stats.empty:
+                    peak_sr_year = yearly_stats.loc[yearly_stats['strike_rate'].idxmax(), 'year']
+                    peak_sr_value = yearly_stats['strike_rate'].max()
+                    peak_runs_year = yearly_stats.loc[yearly_stats['total_runs'].idxmax(), 'year']
+                    peak_runs_value = yearly_stats['total_runs'].max()
+                    max_dismissals_year = yearly_stats.loc[yearly_stats['dismissals'].idxmax(), 'year']
+                    max_dismissals_count = yearly_stats['dismissals'].max()
+                    st.markdown(f"""
+                    **Insights**:
+                    - **Peak Strike Rate**: {selected_batter} achieved their highest strike rate of {peak_sr_value:.1f} in {peak_sr_year}.
+                    - **Peak Scoring Year**: The most runs ({peak_runs_value}) were scored in {peak_runs_year}.
+                    - **Highest Dismissals**: {selected_batter} was dismissed {max_dismissals_count} times in {max_dismissals_year}, indicating a challenging year.
+                    - **Takeaway**: {selected_batter} should aim to replicate their {peak_sr_year} form, while bowlers can exploit recent trends (e.g., higher dismissals in {max_dismissals_year}) to target weaknesses.
+                    """)
+            else:
+                st.markdown("**Error**: 'year' column not found.")
+
+        with tab3:
             st.subheader(f"Percentage of Outs by Bowl Length for {selected_batter}")
             length_summary = (
                 sub.assign(out_flag=sub['out'].astype(bool))
@@ -613,7 +668,7 @@ def main():
             else:
                 st.markdown("**Error**: 'line' or 'length' column missing.")
 
-        with tab3:
+        with tab4:
             st.subheader("Specifications w.r.t Bowl Style")
             sty_table = tab(sub, df_global)
             if not sty_table.empty:
@@ -660,61 +715,6 @@ def main():
                 """)
             else:
                 st.write("No bowling style data found.")
-
-        with tab4:
-            st.subheader(f"Scoring Patterns Over Time for {selected_batter}")
-            if 'year' in sub.columns:
-                yearly_stats = sub.groupby('year').agg(
-                    total_runs=('batruns', 'sum'),
-                    total_balls=('batruns', 'count'),
-                    dismissals=('dismissal', lambda x: x.notna().sum()),
-                    boundaries=('batruns', lambda x: x.isin([4, 6]).sum()),
-                    dots=('batruns', lambda x: (x == 0).sum())
-                ).reset_index()
-                yearly_stats['strike_rate'] = 100 * yearly_stats['total_runs'] / yearly_stats['total_balls']
-                years = sorted(yearly_stats['year'].unique())
-                fig6, ax6 = plt.subplots(figsize=(10, 6))
-                ax6.plot(yearly_stats['year'], yearly_stats['strike_rate'], marker='o', label='Strike Rate', color='blue')
-                ax6.set_xlabel('Year')
-                ax6.set_ylabel('Strike Rate', color='blue')
-                ax6.tick_params(axis='y', labelcolor='blue')
-                ax6_2 = ax6.twinx()
-                ax6_2.plot(yearly_stats['year'], yearly_stats['total_runs'], marker='o', label='Total Runs', color='orange')
-                ax6_2.set_ylabel('Total Runs', color='orange')
-                ax6_2.tick_params(axis='y', labelcolor='orange')
-                ax6.set_xticks(years)
-                ax6.set_xticklabels(years, rotation=45)
-                fig6.legend(loc='upper left')
-                plt.title(f'Strike Rate and Runs Over Time for {selected_batter}')
-                plt.tight_layout()
-                st.pyplot(fig6)
-
-                fig7, ax7 = plt.subplots(figsize=(8, 5))
-                sns.barplot(x='year', y='dismissals', data=yearly_stats, palette='Set2')
-                ax7.set_xticks(range(len(years)))
-                ax7.set_xticklabels(years, rotation=45)
-                plt.title(f'Dismissals Per Year for {selected_batter}')
-                plt.xlabel('Year')
-                plt.ylabel('Number of Dismissals')
-                plt.tight_layout()
-                st.pyplot(fig7)
-
-                if not yearly_stats.empty:
-                    peak_sr_year = yearly_stats.loc[yearly_stats['strike_rate'].idxmax(), 'year']
-                    peak_sr_value = yearly_stats['strike_rate'].max()
-                    peak_runs_year = yearly_stats.loc[yearly_stats['total_runs'].idxmax(), 'year']
-                    peak_runs_value = yearly_stats['total_runs'].max()
-                    max_dismissals_year = yearly_stats.loc[yearly_stats['dismissals'].idxmax(), 'year']
-                    max_dismissals_count = yearly_stats['dismissals'].max()
-                    st.markdown(f"""
-                    **Insights**:
-                    - **Peak Strike Rate**: {selected_batter} achieved their highest strike rate of {peak_sr_value:.1f} in {peak_sr_year}.
-                    - **Peak Scoring Year**: The most runs ({peak_runs_value}) were scored in {peak_runs_year}.
-                    - **Highest Dismissals**: {selected_batter} was dismissed {max_dismissals_count} times in {max_dismissals_year}, indicating a challenging year.
-                    - **Takeaway**: {selected_batter} should aim to replicate their {peak_sr_year} form, while bowlers can exploit recent trends (e.g., higher dismissals in {max_dismissals_year}) to target weaknesses.
-                    """)
-            else:
-                st.markdown("**Error**: 'year' column not found.")
 
         with tab5:
             st.subheader(f"Match-Up Analysis by Phase and Bowling Style: {selected_batter}")
@@ -866,7 +866,7 @@ def main():
             st.markdown("""
             - **🌀 Wagon Wheel Charts**:
                 - **General Wagon Wheel**: Shows batter’s boundary distribution.
-                - **Intelligent Wagon Wheel** <span title="Adjusts line thickness based on shot difficulty."/span>: Highlights boundary difficulty.
+                - **Intelligent Wagon Wheel**: Highlights boundary difficulty.
             - **🎡 Wagon Zone Wheel**: Divides field into 8 strategic scoring zones.
             - **🔥 Dismissal Heatmaps**: Visualize dismissal frequency by line and length.
             """, unsafe_allow_html=True)
@@ -890,9 +890,8 @@ def main():
             st.markdown("""
             Predicts likelihood of batter dismissal based on:
 
-            - Batter handedness
             - Bowling style
-            - Delivery type (line/length)
+            - Delivery type (length)
             - Match phase <span title="Powerplay (1-6), Middle (7-15), Death (16-20)."></span>
             """, unsafe_allow_html=True)
 
@@ -958,14 +957,6 @@ def main():
             2. Adjust year and bowling filters.
             3. Explore visual and analytical tabs.
             4. Use predictions for strategic decisions.
-            """)
-
-        st.markdown("<a id='visual-legend'></a>", unsafe_allow_html=True)
-        with st.expander("🖼️ Visual Legend"):
-            st.markdown("""
-            - **Green Line**: 4-run boundary.
-            - **Purple Line**: 6-run boundary.
-            - **Heatmap (Red/Orange)**: Dismissal risk level.
             """)
 
         st.markdown("**Enjoy your journey through advanced T20 Cricket Analytics! 🏏📈✨**")
