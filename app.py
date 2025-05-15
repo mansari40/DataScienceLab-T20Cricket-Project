@@ -262,21 +262,28 @@ def main():
     st.image("logo.jpg", width=120)
     st.title("T20 Cricket Sports\nData Science Lab Project by Sai Arun | Mustafa | Mitali")
 
+    # Initialize session state to control rerun
+    if "generate_trigger" not in st.session_state:
+        st.session_state.generate_trigger = False
+
     df = ld()
     df_global = df.copy()
 
     batters = sorted(df["bat"].dropna().unique())
-    selected_batter = st.sidebar.selectbox("Select Batter", batters)
+    selected_batter = st.sidebar.selectbox("Select Batter", batters, key="batter_select")
     if "year" in df.columns:
         minY = int(df["year"].min())
         maxY = int(df["year"].max())
-        year_range = st.sidebar.slider("Year Range", minY, maxY, (minY, maxY))
+        year_range = st.sidebar.slider("Year Range", minY, maxY, (minY, maxY), key="year_slider")
     else:
         year_range = None
-    bowler_type = st.sidebar.radio("Bowler Type", ["All", "Spin", "Pace"])
-    if st.sidebar.button("Generate", key="generate_button", help="Click to update output with new parameters"):
-        st.experimental_rerun()
+    bowler_type = st.sidebar.radio("Bowler Type", ["All", "Spin", "Pace"], key="bowler_type_radio")
 
+    # Button to trigger rerun
+    if st.sidebar.button("Generate", key="generate_button", help="Click to update output with new parameters"):
+        st.session_state.generate_trigger = True
+
+    # Apply custom CSS for the button
     st.sidebar.markdown(
         """
         <style>
@@ -296,6 +303,10 @@ def main():
         """,
         unsafe_allow_html=True
     )
+
+    # Trigger rerun only when Generate button is clicked
+    if st.session_state.generate_trigger:
+        st.rerun()
 
     sub = df[df["bat"] == selected_batter].copy()
     if year_range and "year" in sub.columns:
