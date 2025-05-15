@@ -719,11 +719,11 @@ def main():
                         )
                         def get_tactic(row):
                             if row["average"] <= 25 and row["strike_rate"] <= 110:
-                                return f" Use {row['bowl_style']} in {row['phase']}"
+                                return f"✅ Use {row['bowl_style']} in {row['phase']}"
                             elif row["average"] >= 35 and row["strike_rate"] >= 130:
-                                return f" Avoid {row['bowl_style']} in {row['phase']}"
+                                return f"❌ Avoid {row['bowl_style']} in {row['phase']}"
                             else:
-                                return f" Neutral vs {row['bowl_style']} in {row['phase']}"
+                                return f"🟡 Neutral vs {row['bowl_style']} in {row['phase']}"
                         matchup_df["tactic"] = matchup_df.apply(get_tactic, axis=1)
                         matchup_df["strike_rate"] = matchup_df["strike_rate"].round(1)
                         matchup_df["average"] = matchup_df["average"].apply(lambda x: round(x, 1) if math.isfinite(x) else "∞")
@@ -733,9 +733,9 @@ def main():
                         ]])
                         st.markdown("""
                         **Tactical Guide**:
-                        - *Use*: This phase-style combo is effective for dismissing or containing the batter.
-                        - *Avoid*: Batter dominates in this situation — high SR & Avg.
-                        - *Neutral*: No clear advantage either way.
+                        - ✅ *Use*: This phase-style combo is effective for dismissing or containing the batter.
+                        - ❌ *Avoid*: Batter dominates in this situation — high SR & Avg.
+                        - 🟡 *Neutral*: No clear advantage either way.
                         """)
                     else:
                         st.warning("Required columns 'over' or 'bowl_style' not found in dataset.")
@@ -785,84 +785,87 @@ def main():
                             prediction = rf_balanced.predict(user_encoded)[0]
                             probability = rf_balanced.predict_proba(user_encoded)[0][1]
                             st.markdown("### Prediction Outcome")
-                            st.write(f"**Will {selected_batter} get out?** {' Yes' if prediction == 1 else ' No'}")
+                            st.write(f"**Will {selected_batter} get out?** {'🟥 Yes' if prediction == 1 else '🟩 No'}")
                             st.write(f"**Probability of Dismissal:** {round(probability * 100, 2)} %")
         else:
             st.info("Select parameters in the sidebar and click 'Generate' to see the analysis.")
 
     with help_tab:
-        st.header(" T20 Cricket Analytics App: Comprehensive User Guide")
+        st.header("🏏 T20 Cricket Analytics App: Comprehensive User Guide")
         st.markdown("Discover detailed insights into cricket fundamentals, visualizations, and tactical strategies tailored for T20 analysis, explore performance metrics, dismissal predictions, and a quick start guide to enhance your understanding of the game, and dive into essential terms, bowling techniques, and data-driven insights to master T20 cricket analytics!")
-        with st.expander(" Cricket 101: Essential Terms"):
+        with st.expander("📚 Cricket 101: Essential Terms"):
             st.markdown("""
             Cricket is a popular sport played between two teams of 11 players. Key terms:
-            - **Runs **: Points scored by batters.
-            - **Boundary** : Ball hits (4 runs) or crosses boundary without bouncing (6 runs).
-            - **Dismissal** : Ending batter’s innings through various methods.
-            - **Strike Rate (SR)** : `(Runs ÷ Balls faced) × 100`.
-            - **Batting Average** : `Runs ÷ Dismissals`.
+            - **Runs 🏃‍♂️**: Points scored by batters.
+            - **Boundary** <span title="A shot that reaches the edge of the field, scoring 4 or 6 runs.">🚩</span>: Ball hits (4 runs) or crosses boundary without bouncing (6 runs).
+            - **Dismissal** <span title="Ending a batter’s innings (e.g., caught, bowled).">🚫</span>: Ending batter’s innings through various methods.
+            - **Strike Rate (SR)** <span title="Runs scored per 100 balls faced, reflecting batting aggressiveness.">💥</span>: `(Runs ÷ Balls faced) × 100`.
+            - **Batting Average** <span title="Runs divided by dismissals, indicating consistency.">🏏</span>: `Runs ÷ Dismissals`.
             """, unsafe_allow_html=True)
-        with st.expander(" Bowling Lines and Lengths"):
+        with st.expander("🎯 Bowling Lines and Lengths"):
             st.markdown("""
-            **Line (Horizontal direction ):**
+            **Line (Horizontal direction 🎳):**
             - **Wide Outside Off**: Far outside off-side.
             - **Outside Off**: Slightly outside off-stump.
             - **On Stumps**: Directly targeting wickets.
             - **Down Leg**: Towards batter’s leg side.
-            **Length (Distance from batter ):**
+            **Length (Distance from batter 🛣️):**
             - **Yorker**: Near batter’s feet.
             - **Full**: Close to batter.
             - **Good Length**: Optimal for bowlers, challenging for batters.
             - **Short**: Far from batter, resulting in higher bounce.
             """)
-        with st.expander(" Visualizations Explained"):
+        with st.expander("📊 Visualizations Explained"):
             st.markdown("""
-            - ** Wagon Wheel Charts**:
+            - **🌀 Wagon Wheel Charts**:
               - **General Wagon Wheel**: Shows batter’s boundary distribution.
               - **Intelligent Wagon Wheel**: Highlights boundary difficulty.
-            - ** Wagon Zone Wheel**: Divides field into 8 strategic scoring zones.
-            - ** Dismissal Heatmaps**: Visualize dismissal frequency by line and length.
+            - **🎡 Wagon Zone Wheel**: Divides field into 8 strategic scoring zones.
+            - **🔥 Dismissal Heatmaps**: Visualize dismissal frequency by line and length.
             """, unsafe_allow_html=True)
-        with st.expander(" Performance Metrics"):
+        with st.expander("📈 Performance Metrics"):
             st.markdown("""
             | Metric | Meaning |
             |--------|---------|
-            | **Balls ** | Balls faced by batter |
-            | **Runs ** | Total runs scored |
-            | **Strike Rate (SR )** | Runs per 100 balls |
-            | **Dismissals ** | Times batter dismissed |
-            | **Boundary % ** | Percentage of balls hit for boundaries |
-            | **Dot Ball % ** | Percentage of balls without runs |
-            | **Impact ** | Overall effectiveness per 100 balls |
+            | **Balls 🎱** | Balls faced by batter |
+            | **Runs 🏅** | Total runs scored |
+            | **Strike Rate (SR 💥)** | Runs per 100 balls |
+            | **Dismissals 🚫** | Times batter dismissed |
+            | **Boundary % 🏖️** | Percentage of balls hit for boundaries |
+            | **Dot Ball % ⭕️** | Percentage of balls without runs |
+            | **Impact 🌟** | Overall effectiveness per 100 balls |
             """)
-        with st.expander(" Dismissal Prediction Model"):
+        with st.expander("🧠 Dismissal Prediction Model"):
             st.markdown("""
             Predicts likelihood of batter dismissal based on:
             - Bowling style
             - Delivery type (length)
-            - Match phase
+            - Match phase <span title="Powerplay (1-6), Middle (7-15), Death (16-20)."></span>
             """, unsafe_allow_html=True)
-        with st.expander(" Tactical Match-Up Analysis"):
+        with st.expander("🛡️ Tactical Match-Up Analysis"):
             st.markdown("""
             Analyzes batter performance during:
-            - **Powerplay (Overs 1–6 )**: Aggressive batting.
-            - **Middle Overs (7–15 )**: Tactical gameplay.
-            - **Death Overs (16–20 )**: High-intensity phase.
+            - **Powerplay (Overs 1–6 🚀)**: Aggressive batting.
+            - **Middle Overs (7–15 ⚖️)**: Tactical gameplay.
+            - **Death Overs (16–20 💣)**: High-intensity phase.
             **Tactical Symbols**:
-            - Recommended
-            - Avoid
-            - Neutral
+            - ✅ Recommended
+            - ❌ Avoid
+            - 🟡 Neutral
             """)
-        with st.expander(" FAQs"):
+        with st.expander("❓ FAQs"):
             st.markdown("""
-            - **What is T20 Cricket?** Fast-paced cricket format, each team batting for 20 overs.
-            - **Purpose of Wagon Wheels?** Highlight scoring directions and tendencies.
-            - **Why cricket analytics?** Uncover insights, improve strategies, and boost performance.
+            - **What is T20 Cricket?**  
+              Fast-paced cricket format, each team batting for 20 overs.
+            - **Purpose of Wagon Wheels?**  
+              Highlight scoring directions and tendencies.
+            - **Why cricket analytics?**  
+              Uncover insights, improve strategies, and boost performance.
             """)
-        with st.expander(" Dataset Variables"):
+        with st.expander("📋 Dataset Variables"):
             st.markdown("""
             IPL data (2018-2024) variables:
-            | Variable | Explanation |
+            | Variable 📂 | Explanation 📝 |
             |-------------|----------------|
             | **bat** | Batter's name |
             | **batruns** | Runs per delivery |
@@ -876,21 +879,21 @@ def main():
             | **bat_hand** | Batter's preferred hand |
             | **shot_difficulty** | Calculated difficulty metric |
             """)
-        with st.expander(" Further Resources"):
+        with st.expander("🌐 Further Resources"):
             st.markdown("""
             - [ICC Website](https://www.icc-cricket.com)
             - [IPL Official Website](https://www.iplt20.com)
             - [CricViz Analytics](https://cricviz.com)
             - [Cricket Explained](https://www.youtube.com/watch?v=AqtpNkMvj5Y&t=1s)
             """)
-        with st.expander(" Quick Start Guide"):
+        with st.expander("🎯 Quick Start Guide"):
             st.markdown("""
             1. Select a batter from sidebar.
             2. Adjust year and bowling filters.
             3. Click 'Generate' to view analysis.
             4. Explore visual and analytical tabs.
             """)
-        st.markdown("**Enjoy your journey through advanced T20 Cricket Analytics! **")
+        st.markdown("**Enjoy your journey through advanced T20 Cricket Analytics! 🏏📈✨**")
 
 if __name__ == "__main__":
     main()
