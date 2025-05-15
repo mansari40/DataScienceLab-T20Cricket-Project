@@ -715,78 +715,9 @@ def main():
             else:
                 st.markdown("**Error**: 'year' column not found.")
 
-    with tab5:
-        st.subheader(f"Match-Up Analysis by Phase and Bowling Style: {selected_batter}")
-
-        if "over" in sub.columns and "bowl_style" in sub.columns:
-        # Add phase column
-            def get_phase(over):
-                if over <= 6:
-                    return 'Powerplay'
-                elif over <= 15:
-                    return 'Middle'
-                else:
-                    return 'Death'
-
-            sub["phase"] = sub["over"].apply(get_phase)
-
-            matchup_df = sub.groupby(["bowl_style", "phase"]).agg(
-            balls_faced=("ballfaced", "sum"),
-            runs_scored=("batruns", "sum"),
-            dismissals=("out", "sum")
-            ).reset_index()
-
-            matchup_df["strike_rate"] = (matchup_df["runs_scored"] / matchup_df["balls_faced"]) * 100
-            matchup_df["average"] = matchup_df.apply(
-            lambda x: x["runs_scored"] / x["dismissals"] if x["dismissals"] > 0 else float("inf"), axis=1
-            )
-
-            def get_tactic(row):
-                if row["average"] <= 25 and row["strike_rate"] <= 110:
-                    return f"✅ Use {row['bowl_style']} in {row['phase']}"
-                elif row["average"] >= 35 and row["strike_rate"] >= 130:
-                    return f"❌ Avoid {row['bowl_style']} in {row['phase']}"
-                else:
-                    return f"🟡 Neutral vs {row['bowl_style']} in {row['phase']}"
-
-            matchup_df["tactic"] = matchup_df.apply(get_tactic, axis=1)
-
-            # Clean + round for display
-            matchup_df["strike_rate"] = matchup_df["strike_rate"].round(1)
-            matchup_df["average"] = matchup_df["average"].apply(lambda x: round(x, 1) if math.isfinite(x) else "∞")
-
-            # Show the final DataFrame
-            st.dataframe(matchup_df[[
-                "bowl_style", "phase", "balls_faced", "runs_scored", 
-                "strike_rate", "average", "tactic"
-            ]])
-
-            st.markdown("""
-            **Tactical Guide**:
-        -     ✅ *Use*: This phase-style combo is effective for dismissing or containing the batter.
-        -     ❌ *Avoid*: Batter dominates in this situation — high SR & Avg.
-        -     🟡 *Neutral*: No clear advantage either way.
-            """)
-        else:
-            st.warning("Required columns 'over' or 'bowl_style' not found in dataset.")
-
-    with tab6:
-        st.subheader("Dismissal Prediction Model")
-
-        required_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'out', 'over']
-        missing_cols = [col for col in required_cols if col not in sub.columns]
-
-        if missing_cols:
-            st.error(f"Missing required columns for model: {', '.join(missing_cols)}")
-        elif sub.empty:
-            st.warning("No data available under current filters to train prediction model.")
-        else:
-            df_model = sub[required_cols].dropna().copy()
-
-            if df_model.empty:
-                st.warning("No usable rows after dropping missing values.")
-            else:
-                # Step 1: Add phase column before selecting features
+        with tab5:
+            st.subheader(f"Match-Up Analysis by Phase and Bowling Style: {selected_batter}")
+            if "over" in sub.columns and "bowl_style" in sub.columns:
                 def get_phase(over):
                     if over <= 6:
                         return 'Powerplay'
@@ -795,143 +726,242 @@ def main():
                     else:
                         return 'Death'
 
-                df_model['phase'] = df_model['over'].apply(get_phase)
+                sub["phase"] = sub["over"].apply(get_phase)
 
-                # Step 2: Select features
-                feature_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'phase']
-                X = df_model[feature_cols]
-                y = df_model['out']
+                matchup_df = sub.groupby(["bowl_style", "phase"]).agg(
+                    balls_faced=("ballfaced", "sum"),
+                    runs_scored=("batruns", "sum"),
+                    dismissals=("out", "sum")
+                ).reset_index()
 
-                # Step 3: Encode & Train
-                X_encoded = pd.get_dummies(X)
-                X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.3, random_state=42)
+                matchup_df["strike_rate"] = (matchup_df["runs_scored"] / matchup_df["balls_faced"]) * 100
+                matchup_df["average"] = matchup_df.apply(
+                    lambda x: x["runs_scored"] / x["dismissals"] if x["dismissals"] > 0 else float("inf"), axis=1
+                )
 
-                rf_balanced = RandomForestClassifier(class_weight='balanced', random_state=42)
-                rf_balanced.fit(X_train, y_train)
+                def get_tactic(row):
+                    if row["average"] <= 25 and row["strike_rate"] <= 110:
+                        return f"✅ Use {row['bowl_style']} in {row['phase']}"
+                    elif row["average"] >= 35 and row["strike_rate"] >= 130:
+                        return f"❌ Avoid {row['bowl_style']} in {row['phase']}"
+                    else:
+                        return f"🟡 Neutral vs {row['bowl_style']} in {row['phase']}"
 
-                # Step 4: User input
-                st.markdown("### Enter Match Conditions")
-                col1, col2 = st.columns(2)
+                matchup_df["tactic"] = matchup_df.apply(get_tactic, axis=1)
 
-                with col1:
-                    bat_hand = st.selectbox("Batter Hand", ['RHB', 'LHB'])
-                    bowl_style = st.selectbox("Bowling Style", df_model['bowl_style'].unique())
-                    line = st.selectbox("Line", df_model['line'].unique())
+                matchup_df["strike_rate"] = matchup_df["strike_rate"].round(1)
+                matchup_df["average"] = matchup_df["average"].apply(lambda x: round(x, 1) if math.isfinite(x) else "∞")
 
-                with col2:
-                    length = st.selectbox("Length", df_model['length'].unique())
-                    shot = st.selectbox("Shot Type", df_model['shot'].unique())
-                    phase = st.selectbox("Match Phase", ['Powerplay', 'Middle', 'Death'])
+                st.dataframe(matchup_df[[
+                    "bowl_style", "phase", "balls_faced", "runs_scored", 
+                    "strike_rate", "average", "tactic"
+                ]])
 
-                # Step 5: Encode user input
-                user_input = pd.DataFrame([{
-                    'bat_hand': bat_hand,
-                    'bowl_style': bowl_style,
-                    'line': line,
-                    'length': length,
-                    'shot': shot,
-                    'phase': phase
-                }])
-                user_encoded = pd.get_dummies(user_input)
-                user_encoded = user_encoded.reindex(columns=X_encoded.columns, fill_value=0)
+                st.markdown("""
+                **Tactical Guide**:
+                - ✅ *Use*: This phase-style combo is effective for dismissing or containing the batter.
+                - ❌ *Avoid*: Batter dominates in this situation — high SR & Avg.
+                - 🟡 *Neutral*: No clear advantage either way.
+                """)
+            else:
+                st.warning("Required columns 'over' or 'bowl_style' not found in dataset.")
 
-                # Step 6: Predict
-                prediction = rf_balanced.predict(user_encoded)[0]
-                probability = rf_balanced.predict_proba(user_encoded)[0][1]
+        with tab6:
+            st.subheader("Dismissal Prediction Model")
+            required_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'out', 'over']
+            missing_cols = [col for col in required_cols if col not in sub.columns]
 
-                st.markdown("### Prediction Outcome")
-                st.write(f"**Will {selected_batter} get out?** {'🟥 Yes' if prediction == 1 else '🟩 No'}")
-                st.write(f"**Probability of Dismissal:** {round(probability * 100, 2)} %")
+            if missing_cols:
+                st.error(f"Missing required columns for model: {', '.join(missing_cols)}")
+            elif sub.empty:
+                st.warning("No data available under current filters to train prediction model.")
+            else:
+                df_model = sub[required_cols].dropna().copy()
 
-        with help_tab:
-            st.header("🏏 T20 Cricket Analytics App: Comprehensive User Guide")
-            
+                if df_model.empty:
+                    st.warning("No usable rows after dropping missing values.")
+                else:
+                    def get_phase(over):
+                        if over <= 6:
+                            return 'Powerplay'
+                        elif over <= 15:
+                            return 'Middle'
+                        else:
+                            return 'Death'
+
+                    df_model['phase'] = df_model['over'].apply(get_phase)
+
+                    feature_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'phase']
+                    X = df_model[feature_cols]
+                    y = df_model['out']
+
+                    X_encoded = pd.get_dummies(X)
+                    X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.3, random_state=42)
+
+                    rf_balanced = RandomForestClassifier(class_weight='balanced', random_state=42)
+                    rf_balanced.fit(X_train, y_train)
+
+                    st.markdown("### Enter Match Conditions")
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        bat_hand = st.selectbox("Batter Hand", ['RHB', 'LHB'])
+                        bowl_style = st.selectbox("Bowling Style", df_model['bowl_style'].unique())
+                        line = st.selectbox("Line", df_model['line'].unique())
+
+                    with col2:
+                        length = st.selectbox("Length", df_model['length'].unique())
+                        shot = st.selectbox("Shot Type", df_model['shot'].unique())
+                        phase = st.selectbox("Match Phase", ['Powerplay', 'Middle', 'Death'])
+
+                    user_input = pd.DataFrame([{
+                        'bat_hand': bat_hand,
+                        'bowl_style': bowl_style,
+                        'line': line,
+                        'length': length,
+                        'shot': shot,
+                        'phase': phase
+                    }])
+                    user_encoded = pd.get_dummies(user_input)
+                    user_encoded = user_encoded.reindex(columns=X_encoded.columns, fill_value=0)
+
+                    prediction = rf_balanced.predict(user_encoded)[0]
+                    probability = rf_balanced.predict_proba(user_encoded)[0][1]
+
+                    st.markdown("### Prediction Outcome")
+                    st.write(f"**Will {selected_batter} get out?** {'🟥 Yes' if prediction == 1 else '🟩 No'}")
+                    st.write(f"**Probability of Dismissal:** {round(probability * 100, 2)} %")
+
+    with help_tab:
+        st.header("🏏 T20 Cricket Analytics App: Comprehensive User Guide")
+
+        # Basic Search Bar
+        st.markdown("### Search Help Topics")
+        search_query = st.text_input("Enter keywords to search (e.g., 'Wagon Wheel', 'Strike Rate')")
+        st.components.v1.html("""
+        <style>
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        </style>
+        """, height=10)
+
+        # Table of Contents
+        st.markdown("""
+        ### Table of Contents
+        - [Cricket 101](#cricket-101)
+        - [Bowling Lines and Lengths](#bowling-lines-and-lengths)
+        - [Visualizations Explained](#visualizations-explained)
+        - [Performance Metrics](#performance-metrics)
+        - [Dismissal Prediction Model](#dismissal-prediction-model)
+        - [Tactical Match-Up Analysis](#tactical-match-up-analysis)
+        - [FAQs](#faqs)
+        - [Dataset Variables](#dataset-variables)
+        - [Further Resources](#further-resources)
+        - [Contact & Support](#contact-support)
+        - [Quick Start Guide](#quick-start-guide)
+        - [Visual Legend](#visual-legend)
+        """)
+
+        # Structured Layout with Collapsible Sections and Tooltips
+        st.markdown("<a id='cricket-101'></a>", unsafe_allow_html=True)
+        with st.expander("📚 Cricket 101: Essential Terms"):
             st.markdown("""
-            ## 📚 Cricket 101: Essential Terms
-            
             Cricket is a popular sport played between two teams of 11 players. Key terms:
-            
+
             - **Runs 🏃‍♂️**: Points scored by batters.
-            - **Boundary (4️⃣/6️⃣)**: Ball hits (4 runs) or crosses boundary without bouncing (6 runs).
-            - **Dismissal (Out 🚫)**: Ending batter’s innings through various methods (caught, bowled, etc.).
-            - **Strike Rate (SR) 💥**: `(Runs ÷ Balls faced) × 100`; reflects batting aggressiveness.
-            - **Batting Average 📈**: `Runs ÷ Dismissals`; indicates consistency.
+            - **Boundary** <span title="A shot that reaches the edge of the field, scoring 4 or 6 runs.">ℹ️</span>: Ball hits (4 runs) or crosses boundary without bouncing (6 runs).
+            - **Dismissal** <span title="Ending a batter’s innings (e.g., caught, bowled).">ℹ️</span>: Ending batter’s innings through various methods.
+            - **Strike Rate (SR)** <span title="Runs scored per 100 balls faced, reflecting batting aggressiveness.">ℹ️</span>: `(Runs ÷ Balls faced) × 100`.
+            - **Batting Average** <span title="Runs divided by dismissals, indicating consistency.">ℹ️</span>: `Runs ÷ Dismissals`.
+            """, unsafe_allow_html=True)
 
-            ## 🎯 Bowling Lines and Lengths
-
+        st.markdown("<a id='bowling-lines-and-lengths'></a>", unsafe_allow_html=True)
+        with st.expander("🎯 Bowling Lines and Lengths"):
+            st.markdown("""
             **Line (Horizontal direction 🎳):**
 
-            - **Wide Outside Off:** Far outside off-side.
-            - **Outside Off:** Slightly outside off-stump.
-            - **On Stumps:** Directly targeting wickets.
-            - **Down Leg:** Towards batter’s leg side.
+            - **Wide Outside Off**: Far outside off-side.
+            - **Outside Off**: Slightly outside off-stump.
+            - **On Stumps**: Directly targeting wickets.
+            - **Down Leg**: Towards batter’s leg side.
 
             **Length (Distance from batter 🛣️):**
 
-            - **Yorker:** Near batter’s feet.
-            - **Full:** Close to batter.
-            - **Good Length:** Optimal for bowlers, challenging for batters.
-            - **Short:** Far from batter, resulting in higher bounce.
+            - **Yorker**: Near batter’s feet.
+            - **Full**: Close to batter.
+            - **Good Length**: Optimal for bowlers, challenging for batters.
+            - **Short**: Far from batter, resulting in higher bounce.
+            """)
 
-            ## 📊 Visualizations Explained
+        st.markdown("<a id='visualizations-explained'></a>", unsafe_allow_html=True)
+        with st.expander("📊 Visualizations Explained"):
+            st.markdown("""
+            - **🌀 Wagon Wheel Charts**:
+                - **General Wagon Wheel**: Shows batter’s boundary distribution.
+                - **Intelligent Wagon Wheel** <span title="Adjusts line thickness based on shot difficulty.">ℹ️</span>: Highlights boundary difficulty.
+            - **🎡 Wagon Zone Wheel**: Divides field into 8 strategic scoring zones.
+            - **🔥 Dismissal Heatmaps**: Visualize dismissal frequency by line and length.
+            """, unsafe_allow_html=True)
 
-            **🌀 Wagon Wheel Charts**:
-
-            - **General Wagon Wheel**: Shows batter’s boundary distribution.
-            - **Intelligent Wagon Wheel**: Highlights boundary difficulty; thicker lines indicate harder, more valuable shots.
-
-            **🎡 Wagon Zone Wheel**: Divides field into 8 strategic scoring zones.
-
-            **🔥 Dismissal Heatmaps**: Visualize dismissal frequency based on delivery line and length.
-
-            ## 📈 Performance Metrics
-
+        st.markdown("<a id='performance-metrics'></a>", unsafe_allow_html=True)
+        with st.expander("📈 Performance Metrics"):
+            st.markdown("""
             | Metric | Meaning |
             |--------|---------|
-             | **Balls 🎱** | Balls faced by batter |
+            | **Balls 🎱** | Balls faced by batter |
             | **Runs 🏅** | Total runs scored |
             | **Strike Rate (SR 💥)** | Runs per 100 balls |
             | **Dismissals 🚫** | Times batter dismissed |
             | **Boundary % 🏖️** | Percentage of balls hit for boundaries |
             | **Dot Ball % ⭕️** | Percentage of balls without runs |
             | **Impact 🌟** | Overall effectiveness per 100 balls |
+            """)
 
-            ## 🧠 Dismissal Prediction Model
-
-            Predict likelihood of batter dismissal based on:
+        st.markdown("<a id='dismissal-prediction-model'></a>", unsafe_allow_html=True)
+        with st.expander("🧠 Dismissal Prediction Model"):
+            st.markdown("""
+            Predicts likelihood of batter dismissal based on:
 
             - Batter handedness
             - Bowling style
             - Delivery type (line/length)
-            - Match phase (Powerplay, Middle, Death)
+            - Match phase <span title="Powerplay (1-6), Middle (7-15), Death (16-20).">ℹ️</span>
+            """, unsafe_allow_html=True)
 
-            Get immediate predictions for strategic match insights.
-
-            ## 🛡️ Tactical Match-Up Analysis
-
-            Analyze batter performance during:
+        st.markdown("<a id='tactical-match-up-analysis'></a>", unsafe_allow_html=True)
+        with st.expander("🛡️ Tactical Match-Up Analysis"):
+            st.markdown("""
+            Analyzes batter performance during:
 
             - **Powerplay (Overs 1–6 🚀)**: Aggressive batting.
             - **Middle Overs (7–15 ⚖️)**: Tactical gameplay.
             - **Death Overs (16–20 💣)**: High-intensity phase.
 
-            Tactical symbols:
+            **Tactical Symbols**:
+            - ✅ Recommended
+            - ❌ Avoid
+            - 🟡 Neutral
+            """)
 
-            - ✅ **Recommended**: Ideal bowling strategy.
-            - ❌ **Avoid**: Batter dominates scenario.
-            - 🟡 **Neutral**: Balanced effectiveness.
+        st.markdown("<a id='faqs'></a>", unsafe_allow_html=True)
+        with st.expander("❓ FAQs"):
+            st.markdown("""
+            - **What is T20 Cricket?**  
+              Fast-paced cricket format, each team batting for 20 overs.
+            - **Purpose of Wagon Wheels?**  
+              Highlight scoring directions and tendencies.
+            - **Why cricket analytics?**  
+              Uncover insights, improve strategies, and boost performance.
+            """)
 
-            ## ❓ FAQs
-
-            - **What is T20 Cricket?**
-              - Fast-paced cricket format, each team batting for 20 overs.
-            - **Purpose of Wagon Wheels?**
-              - Highlight scoring directions and tendencies.
-            - **Why cricket analytics?**
-              - Uncover insights, improve strategies, and boost performance.
-
-            ## 📋 Dataset Variables
-
+        st.markdown("<a id='dataset-variables'></a>", unsafe_allow_html=True)
+        with st.expander("📋 Dataset Variables"):
+            st.markdown("""
             IPL data (2018-2024) variables:
 
             | Variable 📂 | Explanation 📝 |
@@ -947,35 +977,69 @@ def main():
             | **bowl_style** | Bowling style (spin/pace variations) |
             | **bat_hand** | Batter's preferred hand |
             | **shot_difficulty** | Calculated difficulty metric |
+            """)
 
-            ## 🌐 Further Resources
-
+        st.markdown("<a id='further-resources'></a>", unsafe_allow_html=True)
+        with st.expander("🌐 Further Resources"):
+            st.markdown("""
             - [ICC Website](https://www.icc-cricket.com)
             - [IPL Official Website](https://www.iplt20.com)
             - [CricViz Analytics](https://cricviz.com)
+            """)
 
-            ## 📩 Contact & Support
-
+        st.markdown("<a id='contact-support'></a>", unsafe_allow_html=True)
+        with st.expander("📩 Contact & Support"):
+            st.markdown("""
             Have questions or feedback?
 
             - **Mustafa:** mustafa.ansari@gmail.com
-            
+            """)
 
-            ## 🎯 Quick Start Guide
-
+        st.markdown("<a id='quick-start-guide'></a>", unsafe_allow_html=True)
+        with st.expander("🎯 Quick Start Guide"):
+            st.markdown("""
             1. Select a batter from sidebar.
             2. Adjust year and bowling filters.
             3. Explore visual and analytical tabs.
             4. Use predictions for strategic decisions.
+            """)
 
-            ## 🖼️ Visual Legend
-
+        st.markdown("<a id='visual-legend'></a>", unsafe_allow_html=True)
+        with st.expander("🖼️ Visual Legend"):
+            st.markdown("""
             - **Green Line**: 4-run boundary.
             - **Purple Line**: 6-run boundary.
             - **Heatmap (Red/Orange)**: Dismissal risk level.
-
-            **Enjoy your journey through advanced T20 Cricket Analytics! 🏏📈✨**
             """)
+
+        # Interactive Features Section
+        st.markdown("### Interactive and User-Friendly Features")
+        st.markdown("""
+        - **Search Bar**: Use the search input above to quickly find topics. Enter keywords like "Wagon Wheel" or "Strike Rate" to locate relevant sections (note: this is a basic implementation; full functionality requires additional JavaScript).
+        - **Tooltips**: Hover over terms with an <span title="This is an example tooltip!">ℹ️</span> icon for explanations of technical terms.
+        """, unsafe_allow_html=True)
+
+        # Search Functionality (Basic Placeholder)
+        if search_query:
+            st.markdown(f"**Search Results for '{search_query}':**")
+            sections = [
+                ("Cricket 101", "runs", "boundary", "dismissal", "strike rate", "batting average"),
+                ("Bowling Lines and Lengths", "line", "length", "yorker", "full", "good length", "short"),
+                ("Visualizations Explained", "wagon wheel", "dismissal heatmaps", "wagon zone wheel"),
+                ("Performance Metrics", "balls", "runs", "strike rate", "dismissals", "boundary %", "dot ball %", "impact"),
+                ("Dismissal Prediction Model", "prediction", "dismissal", "match phase"),
+                ("Tactical Match-Up Analysis", "powerplay", "middle overs", "death overs"),
+                ("FAQs", "t20 cricket", "wagon wheels", "analytics"),
+                ("Dataset Variables", "bat", "batruns", "out", "wagonzone", "line", "length"),
+            ]
+            matches = [s[0] for s in sections if any(search_query.lower() in keyword.lower() for keyword in s)]
+            if matches:
+                for match in matches:
+                    st.markdown(f"- [{match}](#{match.lower().replace(' ', '-')})")
+            else:
+                st.markdown("No matches found. Try different keywords.")
+
+        st.markdown("**Enjoy your journey through advanced T20 Cricket Analytics! 🏏📈✨**")
 
 if __name__ == "__main__":
     main()
