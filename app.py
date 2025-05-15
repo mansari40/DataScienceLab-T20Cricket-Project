@@ -768,7 +768,7 @@ def main():
 
         with tab6:
             st.subheader("Dismissal Prediction Model")
-            required_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'out', 'over']
+            required_cols = ['length', 'bowl_style','out', 'over']
             missing_cols = [col for col in required_cols if col not in sub.columns]
 
             if missing_cols:
@@ -791,7 +791,7 @@ def main():
 
                     df_model['phase'] = df_model['over'].apply(get_phase)
 
-                    feature_cols = ['bat_hand', 'bowl_style', 'line', 'length', 'shot', 'phase']
+                    feature_cols = ['bowl_style', 'length', 'phase']
                     X = df_model[feature_cols]
                     y = df_model['out']
 
@@ -805,21 +805,15 @@ def main():
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        bat_hand = st.selectbox("Batter Hand", ['RHB', 'LHB'])
                         bowl_style = st.selectbox("Bowling Style", df_model['bowl_style'].unique())
-                        line = st.selectbox("Line", df_model['line'].unique())
+                        length = st.selectbox("Length", df_model['length'].unique())
 
                     with col2:
-                        length = st.selectbox("Length", df_model['length'].unique())
-                        shot = st.selectbox("Shot Type", df_model['shot'].unique())
                         phase = st.selectbox("Match Phase", ['Powerplay', 'Middle', 'Death'])
 
                     user_input = pd.DataFrame([{
-                        'bat_hand': bat_hand,
                         'bowl_style': bowl_style,
-                        'line': line,
                         'length': length,
-                        'shot': shot,
                         'phase': phase
                     }])
                     user_encoded = pd.get_dummies(user_input)
