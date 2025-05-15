@@ -829,8 +829,8 @@ def main():
 
     with help_tab:
         st.header("🏏 T20 Cricket Analytics App: Comprehensive User Guide")
-        st.markdown("Discover detailed insights into cricket fundamentals, visualizations, and tactical strategies tailored for T20 analysis.")
-        st.markdown("Explore performance metrics, dismissal predictions, and a quick start guide to enhance your understanding of the game.")
+        st.markdown("Discover detailed insights into cricket fundamentals, visualizations, and tactical strategies tailored for T20 analysis, explore performance metrics, dismissal predictions, and a quick start guide to enhance your understanding of the game, and dive into essential terms, bowling techniques, and data-driven insights to master T20 cricket analytics!")
+
         # Structured Layout with Collapsible Sections and Tooltips
         st.markdown("<a id='cricket-101'></a>", unsafe_allow_html=True)
         with st.expander("📚 Cricket 101: Essential Terms"):
