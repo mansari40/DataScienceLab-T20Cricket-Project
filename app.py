@@ -835,38 +835,6 @@ def main():
     with help_tab:
         st.header("🏏 T20 Cricket Analytics App: Comprehensive User Guide")
 
-        # Basic Search Bar
-        st.markdown("### Search Help Topics")
-        search_query = st.text_input("Enter keywords to search (e.g., 'Wagon Wheel', 'Strike Rate')")
-        st.components.v1.html("""
-        <style>
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        </style>
-        """, height=10)
-
-        # Table of Contents
-        st.markdown("""
-        ### Table of Contents
-        - [Cricket 101](#cricket-101)
-        - [Bowling Lines and Lengths](#bowling-lines-and-lengths)
-        - [Visualizations Explained](#visualizations-explained)
-        - [Performance Metrics](#performance-metrics)
-        - [Dismissal Prediction Model](#dismissal-prediction-model)
-        - [Tactical Match-Up Analysis](#tactical-match-up-analysis)
-        - [FAQs](#faqs)
-        - [Dataset Variables](#dataset-variables)
-        - [Further Resources](#further-resources)
-        - [Contact & Support](#contact-support)
-        - [Quick Start Guide](#quick-start-guide)
-        - [Visual Legend](#visual-legend)
-        """)
-
         # Structured Layout with Collapsible Sections and Tooltips
         st.markdown("<a id='cricket-101'></a>", unsafe_allow_html=True)
         with st.expander("📚 Cricket 101: Essential Terms"):
@@ -930,7 +898,7 @@ def main():
             - Batter handedness
             - Bowling style
             - Delivery type (line/length)
-            - Match phase <span title="Powerplay (1-6), Middle (7-15), Death (16-20)."/span>
+            - Match phase <span title="Powerplay (1-6), Middle (7-15), Death (16-20)."></span>
             """, unsafe_allow_html=True)
 
         st.markdown("<a id='tactical-match-up-analysis'></a>", unsafe_allow_html=True)
@@ -985,14 +953,7 @@ def main():
             - [ICC Website](https://www.icc-cricket.com)
             - [IPL Official Website](https://www.iplt20.com)
             - [CricViz Analytics](https://cricviz.com)
-            """)
-
-        st.markdown("<a id='contact-support'></a>", unsafe_allow_html=True)
-        with st.expander("📩 Contact & Support"):
-            st.markdown("""
-            Have questions or feedback?
-
-            - **Mustafa:** mustafa.ansari@gmail.com
+            - [Cricket Explained](https://www.youtube.com/watch?v=AqtpNkMvj5Y&t=1s)
             """)
 
         st.markdown("<a id='quick-start-guide'></a>", unsafe_allow_html=True)
@@ -1011,33 +972,6 @@ def main():
             - **Purple Line**: 6-run boundary.
             - **Heatmap (Red/Orange)**: Dismissal risk level.
             """)
-
-        # Interactive Features Section
-        st.markdown("### Interactive and User-Friendly Features")
-        st.markdown("""
-        - **Search Bar**: Use the search input above to quickly find topics. Enter keywords like "Wagon Wheel" or "Strike Rate" to locate relevant sections (note: this is a basic implementation; full functionality requires additional JavaScript).
-        - **Tooltips**: Hover over terms with an <span title="This is an example tooltip!">ℹ️</span> icon for explanations of technical terms.
-        """, unsafe_allow_html=True)
-
-        # Search Functionality (Basic Placeholder)
-        if search_query:
-            st.markdown(f"**Search Results for '{search_query}':**")
-            sections = [
-                ("Cricket 101", "runs", "boundary", "dismissal", "strike rate", "batting average"),
-                ("Bowling Lines and Lengths", "line", "length", "yorker", "full", "good length", "short"),
-                ("Visualizations Explained", "wagon wheel", "dismissal heatmaps", "wagon zone wheel"),
-                ("Performance Metrics", "balls", "runs", "strike rate", "dismissals", "boundary %", "dot ball %", "impact"),
-                ("Dismissal Prediction Model", "prediction", "dismissal", "match phase"),
-                ("Tactical Match-Up Analysis", "powerplay", "middle overs", "death overs"),
-                ("FAQs", "t20 cricket", "wagon wheels", "analytics"),
-                ("Dataset Variables", "bat", "batruns", "out", "wagonzone", "line", "length"),
-            ]
-            matches = [s[0] for s in sections if any(search_query.lower() in keyword.lower() for keyword in s)]
-            if matches:
-                for match in matches:
-                    st.markdown(f"- [{match}](#{match.lower().replace(' ', '-')})")
-            else:
-                st.markdown("No matches found. Try different keywords.")
 
         st.markdown("**Enjoy your journey through advanced T20 Cricket Analytics! 🏏📈✨**")
 
