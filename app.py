@@ -259,6 +259,7 @@ def tab(df, df_global):
 
 def main():
     st.set_page_config(page_title="T20: SPORTS", layout="wide")
+    st.image("logo.jpg", width=100)
     st.title("T20 Cricket Sports\nData Science Lab Project by Sai Arun | Mustafa | Mitali")
 
     df = ld()
